@@ -7,6 +7,20 @@ const JobApplication = require("../models/Application");
 router.use(express.json());
 // router.use(express.urlencoded({ extended: true }));
 
+const authMiddleWare = (req, res, next) => {
+  const token = req.cookies.token;
+  if (!token) {
+      return res.status(401).json({ message: "UNAUTHORIZED" })
+  }
+  try {
+      const dcoded = jwt.verify(token, jwtSecret);
+      req.userId = dcoded.userId;
+      next();
+  } catch (error) {
+      return res.status(401).json({ message: "UNAUTHORIZED" })
+  }
+}
+
 router.post("/sign-up", async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -46,7 +60,7 @@ router.post("/sign-in", async (req, res) => {
   }
 });
 
-router.post("/profile-edit", async (req, res) => {
+router.post("/profile-edit", authMiddleWare, async (req, res) => {
   try {
     const { fullName, email, password, companyName } = req.body;
     const user = await User.findOne({ email });
@@ -72,7 +86,7 @@ router.post("/profile-edit", async (req, res) => {
   }
 });
 
-router.post("/job-application", async (req, res) => {
+router.post("/job-application", authMiddleWare, async (req, res) => {
   try {
     
     const { fullname, email, education, exp, portfolio, github, linkedin, skills, progLang, currLoc, shiftToNew, slot } = req.body;
@@ -105,7 +119,7 @@ router.post("/job-application", async (req, res) => {
   }
 });
 
-router.post("/sign-out", async (req, res) => {
+router.post("/sign-out", authMiddleWare, async (req, res) => {
   res.clearCookie("token");
   res.status(200).json({ message: "Signed out successfully" });
 });
