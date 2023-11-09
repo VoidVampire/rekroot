@@ -2,9 +2,12 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const cookieParser = require('cookie-parser');
 const User = require("../models/User");
 const JobApplication = require("../models/Application");
 router.use(express.json());
+router.use(cookieParser());
+const jwtSecret = process.env.JWT_SECRET;
 // router.use(express.urlencoded({ extended: true }));
 
 const authMiddleWare = (req, res, next) => {
@@ -49,9 +52,7 @@ router.post("/sign-in", async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({ message: "Wrong password" });
     }
-    const token = jwt.sign({ userId: user.email }, process.env.JWT_SECRET, {
-      expiresIn: "20s",
-    });
+    const token = jwt.sign({ userId: user.email }, process.env.JWT_SECRET, { expiresIn: "10m" });
     res.cookie("token", token, { httpOnly: true });
     res.status(200).json({ message: "Signed in successfully", token });
   } catch (error) {
