@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const cookieParser = require('cookie-parser');
+const cookieParser = require("cookie-parser");
 const User = require("../models/User");
 const JobApplication = require("../models/Application");
 router.use(express.json());
@@ -13,16 +13,16 @@ const jwtSecret = process.env.JWT_SECRET;
 const authMiddleWare = (req, res, next) => {
   const token = req.cookies.token;
   if (!token) {
-      return res.status(401).json({ message: "UNAUTHORIZED" })
+    return res.status(401).json({ message: "UNAUTHORIZED" });
   }
   try {
-      const dcoded = jwt.verify(token, jwtSecret);
-      req.userId = dcoded.userId;
-      next();
+    const dcoded = jwt.verify(token, jwtSecret);
+    req.userId = dcoded.userId;
+    next();
   } catch (error) {
-      return res.status(401).json({ message: "UNAUTHORIZED" })
+    return res.status(401).json({ message: "UNAUTHORIZED" });
   }
-}
+};
 
 router.post("/sign-up", async (req, res) => {
   try {
@@ -52,7 +52,9 @@ router.post("/sign-in", async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({ message: "Wrong password" });
     }
-    const token = jwt.sign({ userId: user.email }, process.env.JWT_SECRET, { expiresIn: "10m" });
+    const token = jwt.sign({ userId: user.email }, process.env.JWT_SECRET, {
+      expiresIn: "10m",
+    });
     res.cookie("token", token, { httpOnly: true });
     res.status(200).json({ message: "Signed in successfully", token });
   } catch (error) {
@@ -63,7 +65,17 @@ router.post("/sign-in", async (req, res) => {
 
 router.post("/profile-edit", authMiddleWare, async (req, res) => {
   try {
-    const { fullName, email, password, companyName } = req.body;
+    const {
+      fullName,
+      email,
+      password,
+      phoneNo,
+      location,
+      linkedin,
+      designation,
+      companyName,
+      companyWebsite,
+    } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: "Invalid User" });
@@ -71,16 +83,30 @@ router.post("/profile-edit", authMiddleWare, async (req, res) => {
     if (fullName) {
       user.fullName = fullName;
     }
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 7);
-      user.password = hashedPassword;
+    if (phoneNo) {
+      user.phoneNo = phoneNo;
+    }
+    if (location) {
+      user.location = location;
+    }
+    if (linkedin) {
+      user.linkedin = linkedin;
+    }
+    if (designation) {
+      user.designation = designation;
     }
     if (companyName) {
       user.companyName = companyName;
     }
-    await user.save();
-
-    res.status(200).json({ message: "Profile Updated successfully" });
+    if (companyWebsite) {
+      user.companyWebsite = companyWebsite;
+    }
+    if (password && (await bcrypt.compare(password, user.password))) {
+      await user.save();
+      res.status(200).json({ message: "Profile Updated successfully" });
+    } else if (password) {
+      return res.status(401).json({ message: "Wrong Password" });
+    }
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Server Error" });
@@ -89,15 +115,27 @@ router.post("/profile-edit", authMiddleWare, async (req, res) => {
 
 router.post("/job-application", authMiddleWare, async (req, res) => {
   try {
-    
-    const { fullname, email, education, exp, portfolio, github, linkedin, skills, progLang, currLoc, shiftToNew, slot } = req.body;
-    const formattedEducation = education.map(edu => ({
+    const {
+      fullname,
+      email,
+      education,
+      exp,
+      portfolio,
+      github,
+      linkedin,
+      skills,
+      progLang,
+      currLoc,
+      shiftToNew,
+      slot,
+    } = req.body;
+    const formattedEducation = education.map((edu) => ({
       eduLevel: edu.eduLevel,
       schoolName: edu.schoolName,
       passYear: edu.passYear,
-      cgpa: edu.cgpa
+      cgpa: edu.cgpa,
     }));
-    const formattedExp = exp.map(expItem => {
+    const formattedExp = exp.map((expItem) => {
       const fromDate = new Date(expItem.from);
       const toDate = new Date(expItem.to);
 
@@ -108,12 +146,28 @@ router.post("/job-application", authMiddleWare, async (req, res) => {
         from: fromDate,
         to: toDate,
         jobTitle: expItem.jobTitle,
-        yearsOfExp: Math.round(diffYears)
+        yearsOfExp: Math.round(diffYears),
       };
     });
-    const newJobApplication = await JobApplication.create({ fullname, email, education: formattedEducation, exp: formattedExp, portfolio, github, linkedin, skills, progLang, currLoc, shiftToNew, slot });
-    console.log("Job Application Posted")
-    res.status(201).json({ message: 'Job application submitted successfully', jobApplication: newJobApplication });
+    const newJobApplication = await JobApplication.create({
+      fullname,
+      email,
+      education: formattedEducation,
+      exp: formattedExp,
+      portfolio,
+      github,
+      linkedin,
+      skills,
+      progLang,
+      currLoc,
+      shiftToNew,
+      slot,
+    });
+    console.log("Job Application Posted");
+    res.status(201).json({
+      message: "Job application submitted successfully",
+      jobApplication: newJobApplication,
+    });
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Server Error" });
