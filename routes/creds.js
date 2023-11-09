@@ -52,7 +52,7 @@ router.post("/profile-edit", async (req, res) => {
     if (!user) {
       return res.status(401).json({ message: "Invalid User" });
     }
-    if (FullName !== undefined && FullName !== null) {
+    if (FullName) {
       user.fullname = FullName;
     }
     if (Password) {
