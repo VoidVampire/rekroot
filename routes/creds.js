@@ -8,7 +8,6 @@ const JobApplication = require("../models/Application");
 router.use(express.json());
 router.use(cookieParser());
 const jwtSecret = process.env.JWT_SECRET;
-// router.use(express.urlencoded({ extended: true }));
 
 const authMiddleWare = (req, res, next) => {
   const token = req.cookies.token;
@@ -52,9 +51,7 @@ router.post("/sign-in", async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({ message: "Wrong password" });
     }
-    const token = jwt.sign({ userId: user.email }, process.env.JWT_SECRET, {
-      expiresIn: "10m",
-    });
+    const token = jwt.sign({ userId: user.email }, process.env.JWT_SECRET, { expiresIn: "10m" });
     res.cookie("token", token, { httpOnly: true });
     res.status(200).json({ message: "Signed in successfully", token });
   } catch (error) {
@@ -74,7 +71,7 @@ router.post("/profile-edit", authMiddleWare, async (req, res) => {
       linkedin,
       designation,
       companyName,
-      companyWebsite,
+      companyWebsite
     } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
@@ -113,35 +110,30 @@ router.post("/profile-edit", authMiddleWare, async (req, res) => {
   }
 });
 
+router.get("/job-application", authMiddleWare, async (req, res) => {
+  try {
+    const jobApplications = await JobApplication.find();
+    res.status(200).json(jobApplications);
+  } catch (error) {
+    console.error("Error fetching job applications:", error);
+    res.status(500).json({ error: "Server Error" });
+  }
+});
+
 router.post("/job-application", authMiddleWare, async (req, res) => {
   try {
-    const {
-      fullname,
-      email,
-      education,
-      exp,
-      portfolio,
-      github,
-      linkedin,
-      skills,
-      progLang,
-      currLoc,
-      shiftToNew,
-      slot,
-    } = req.body;
+    const { fullname, email, education, exp, portfolio, github, linkedin, skills, progLang, currLoc, shiftToNew, slot } = req.body;
     const formattedEducation = education.map((edu) => ({
       eduLevel: edu.eduLevel,
       schoolName: edu.schoolName,
       passYear: edu.passYear,
-      cgpa: edu.cgpa,
+      cgpa: edu.cgpa
     }));
     const formattedExp = exp.map((expItem) => {
       const fromDate = new Date(expItem.from);
       const toDate = new Date(expItem.to);
-
       const diffTime = Math.abs(toDate - fromDate);
       const diffYears = diffTime / (1000 * 60 * 60 * 24 * 365);
-
       return {
         from: fromDate,
         to: toDate,
@@ -149,20 +141,7 @@ router.post("/job-application", authMiddleWare, async (req, res) => {
         yearsOfExp: Math.round(diffYears),
       };
     });
-    const newJobApplication = await JobApplication.create({
-      fullname,
-      email,
-      education: formattedEducation,
-      exp: formattedExp,
-      portfolio,
-      github,
-      linkedin,
-      skills,
-      progLang,
-      currLoc,
-      shiftToNew,
-      slot,
-    });
+    const newJobApplication = await JobApplication.create({ fullname, email, education: formattedEducation, exp: formattedExp, portfolio, github, linkedin, skills, progLang, currLoc, shiftToNew, slot });
     console.log("Job Application Posted");
     res.status(201).json({
       message: "Job application submitted successfully",
