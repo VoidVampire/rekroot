@@ -10,18 +10,20 @@ router.use(cookieParser());
 const jwtSecret = process.env.JWT_SECRET;
 
 const authMiddleWare = (req, res, next) => {
-  const token = req.cookies.token;
-  if (!token) {
+  const authorizationHeader = req.headers['authorization'];
+  if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: "UNAUTHORIZED" });
   }
+  const token = authorizationHeader.split(' ')[1];
   try {
-    const dcoded = jwt.verify(token, jwtSecret);
-    req.userId = dcoded.userId;
+    const decoded = jwt.verify(token, jwtSecret);
+    req.userId = decoded.userId;
     next();
   } catch (error) {
     return res.status(401).json({ message: "UNAUTHORIZED" });
   }
 };
+
 
 router.post("/sign-up", async (req, res) => {
   try {
@@ -52,7 +54,6 @@ router.post("/sign-in", async (req, res) => {
       return res.status(401).json({ message: "Wrong password" });
     }
     const token = jwt.sign({ userId: user.email }, process.env.JWT_SECRET, { expiresIn: "10m" });
-    res.cookie("token", token, { httpOnly: true });
     res.status(200).json({ message: "Signed in successfully", token });
   } catch (error) {
     console.log(error);
