@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const expressJwt = require('express-jwt');
 const cookieParser = require("cookie-parser");
 const User = require("../models/User");
 const JobApplication = require("../models/Application");
@@ -9,20 +10,36 @@ router.use(express.json());
 router.use(cookieParser());
 const jwtSecret = process.env.JWT_SECRET;
 
-const authMiddleWare = (req, res, next) => {
-  const authorizationHeader = req.headers['authorization'];
-  if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: "UNAUTHORIZED" });
+const authMiddleware = expressJwt({
+  secret: jwtSecret,
+  getToken: function fromHeaderOrQueryString(req) {
+    if (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer') {
+      return req.headers.authorization.split(' ')[1];
+    } else if (req.query && req.query.token) {
+      return req.query.token;
+    }
+    return null;
   }
-  const token = authorizationHeader.split(' ')[1];
+}).unless({ path: ['/sign-up', '/sign-in', "/"] });
+
+router.use(authMiddleware);
+
+router.get("/me", async (req, res) => {
   try {
-    const decoded = jwt.verify(token, jwtSecret);
-    req.userId = decoded.userId;
-    next();
+    const user = await User.findOne({ email: req.user.userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    const userData = {
+      fullName: user.fullName,
+      email: user.email,
+    };
+    res.status(200).json(userData);
   } catch (error) {
-    return res.status(401).json({ message: "UNAUTHORIZED" });
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
   }
-};
+});
 
 
 router.post("/sign-up", async (req, res) => {
@@ -61,7 +78,7 @@ router.post("/sign-in", async (req, res) => {
   }
 });
 
-router.post("/profile-edit", authMiddleWare, async (req, res) => {
+router.post("/profile-edit", async (req, res) => {
   try {
     const {
       fullName,
@@ -111,7 +128,7 @@ router.post("/profile-edit", authMiddleWare, async (req, res) => {
   }
 });
 
-router.get("/job-application", authMiddleWare, async (req, res) => {
+router.get("/job-application", async (req, res) => {
   try {
     const jobApplications = await JobApplication.find();
     res.status(200).json(jobApplications);
@@ -121,7 +138,7 @@ router.get("/job-application", authMiddleWare, async (req, res) => {
   }
 });
 
-router.post("/job-application", authMiddleWare, async (req, res) => {
+router.post("/job-application", async (req, res) => {
   try {
     const { fullname, email, education, exp, portfolio, github, linkedin, skills, progLang, currLoc, shiftToNew, slot } = req.body;
     const formattedEducation = education.map((edu) => ({
@@ -154,7 +171,7 @@ router.post("/job-application", authMiddleWare, async (req, res) => {
   }
 });
 
-router.post("/sign-out", authMiddleWare, async (req, res) => {
+router.post("/sign-out", async (req, res) => {
   res.clearCookie("token");
   res.status(200).json({ message: "Signed out successfully" });
 });
