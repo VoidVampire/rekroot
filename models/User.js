@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const Schema = mongoose.Schema;
+
 const UserSchema = new Schema({
   fullName: { type: String, default: "" },
   email: { type: String, required: true, unique: true },
@@ -9,8 +10,7 @@ const UserSchema = new Schema({
   location: { type: String, default: "" },
   linkedin: { type: String, default: "" },
   designation: { type: String, default: "" },
-  companyName: { type: String, default: "" },
-  companyWebsite: { type: String, default: "" },
+  companies: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Company' }],
 });
 
 module.exports = mongoose.model("User", UserSchema);

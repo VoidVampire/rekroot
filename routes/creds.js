@@ -6,6 +6,8 @@ const expressJwt = require('express-jwt');
 const cookieParser = require("cookie-parser");
 const User = require("../models/User");
 const JobApplication = require("../models/Application");
+const Company = require("../models/Company");
+const JobPost = require("../models/JobPost");
 router.use(express.json());
 router.use(cookieParser());
 const jwtSecret = process.env.JWT_SECRET;
