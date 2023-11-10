@@ -8,8 +8,6 @@ const User = require("../models/User");
 const JobApplication = require("../models/Application");
 const Company = require("../models/Company");
 const JobPost = require("../models/JobPost");
-router.use(express.json());
-router.use(cookieParser());
 const jwtSecret = process.env.JWT_SECRET;
 
 const authMiddleware = expressJwt({
@@ -25,10 +23,12 @@ const authMiddleware = expressJwt({
 }).unless({ path: ['/sign-up', '/sign-in', "/"] });
 
 router.use(authMiddleware);
+router.use(express.json());
+router.use(cookieParser());
 
 router.get("/me", async (req, res) => {
   try {
-    const user = await User.findOne({ email: req.user.userId });
+    const user = await User.findById(req.user.userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -42,7 +42,6 @@ router.get("/me", async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 });
-
 
 router.post("/sign-up", async (req, res) => {
   try {
@@ -72,7 +71,8 @@ router.post("/sign-in", async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({ message: "Wrong password" });
     }
-    const token = jwt.sign({ userId: user.email }, process.env.JWT_SECRET, { expiresIn: "10m" });
+    console.log(user._id);
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "10m" });
     res.status(200).json({ message: "Signed in successfully", token });
   } catch (error) {
     console.log(error);

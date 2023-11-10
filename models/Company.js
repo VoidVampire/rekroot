@@ -12,7 +12,7 @@ const CompanySchema = new Schema({
     },
     logo: String,
     support_email: { type: String, default: "" },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Make createdBy a reference to the User model
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, 
 });
 
 module.exports = mongoose.model("Company", CompanySchema);
