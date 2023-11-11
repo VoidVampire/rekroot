@@ -9,6 +9,8 @@ const JobApplication = require("../models/Application");
 const Company = require("../models/Company");
 const JobPost = require("../models/JobPost");
 const jwtSecret = process.env.JWT_SECRET;
+const multer = require("multer");
+const upload=require("../middleware/upload");
 
 const authMiddleware = expressJwt({
   secret: jwtSecret,
@@ -95,41 +97,19 @@ router.post("/sign-in", async (req, res) => {
 router.post("/profile-edit", async (req, res) => {
   try {
     const {
-      fullName,
-      email,
-      password,
-      phoneNo,
-      location,
-      linkedin,
-      designation,
-      companyName,
-      companyWebsite
+      fullName,email,password,phoneNo,location,linkedin,designation,
     } = req.body;
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(401).json({ message: "Invalid User" });
     }
-    if (fullName) {
-      user.fullName = fullName;
-    }
-    if (phoneNo) {
-      user.phoneNo = phoneNo;
-    }
-    if (location) {
-      user.location = location;
-    }
-    if (linkedin) {
-      user.linkedin = linkedin;
-    }
-    if (designation) {
-      user.designation = designation;
-    }
-    if (companyName) {
-      user.companyName = companyName;
-    }
-    if (companyWebsite) {
-      user.companyWebsite = companyWebsite;
-    }
+    
+    if (fullName) user.fullName = fullName;
+    if (phoneNo) user.phoneNo = phoneNo;
+    if (location) user.location = location;
+    if (linkedin) user.linkedin = linkedin;
+    if (designation) user.designation = designation;
+
     if (password && (await bcrypt.compare(password, user.password))) {
       await user.save();
       res.status(200).json({ message: "Profile Updated successfully" });
@@ -141,6 +121,54 @@ router.post("/profile-edit", async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 });
+
+router.post("/company",upload.single('file'),async(req,res)=>{
+  try{
+    const {companyName,companyWebsite,address,support_email}=req.body;
+    if (req.file.size > 1024 * 1024) {
+      return res.status(400).json({ error: 'File size exceeds 1 MB. Please upload a smaller file.' });
+    }
+    const existingCompany = await Company.findOne({ companyName });
+    if (existingCompany) {
+      return res.status(400).json({ message: "Company already exists" });
+    }
+
+    const userId = req.user.userId;
+
+    const company = await Company.create({companyName,
+      companyWebsite,
+      address,
+      logo:req.file.path,
+      support_email,
+      createdBy:userId
+    });
+
+    console.log("Company is created", company);
+    res.status(201).json({ message: "Company is created Successfully" });
+  }
+  catch(error){
+    console.log(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+router.get("/company/:companyId",async(req,res)=>{
+  try{
+    const companyId=req.params.companyId;
+    const company = await Company.findById(companyId).populate('createdBy', 'fullName');
+
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+
+    res.status(200).json({ company });
+  }
+  catch(error){
+    console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 
 router.get("/job-application", async (req, res) => {
   try {
