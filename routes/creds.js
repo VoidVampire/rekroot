@@ -22,21 +22,34 @@ const authMiddleware = expressJwt({
   }
 }).unless({ path: ['/sign-up', '/sign-in', "/"] });
 
+const checkCompanyOwnership = async (req, res, next) => {
+  try {
+    const companyId = req.params.id;
+    const userId = req.user.userId;
+    const company = await Company.findById(companyId);
+    if (!company || !company.createdBy.equals(userId)) {
+      console.log("Access Denied");
+      return res.status(403).json({ message: "Forbidden: You are not the owner of this company" });
+    }
+    console.log("Access Granted");
+    next();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 router.use(authMiddleware);
 router.use(express.json());
 router.use(cookieParser());
 
 router.get("/me", async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId);
+    const user = await User.findById(req.user.userId).select('fullName email');
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
-    const userData = {
-      fullName: user.fullName,
-      email: user.email,
-    };
-    res.status(200).json(userData);
+    res.status(200).json(user);
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server Error" });
@@ -46,13 +59,13 @@ router.get("/me", async (req, res) => {
 router.post("/sign-up", async (req, res) => {
   try {
     const { email, password } = req.body;
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email }).select('-_id email');
     if (existingUser) {
       return res.status(400).json({ message: "Email already exists" });
     }
     const hashedPassword = await bcrypt.hash(password, 7);
     const user = await User.create({ email, password: hashedPassword });
-    console.log("User created", user);
+    console.log("User created");
     res.status(201).json({ message: "User created" });
   } catch (error) {
     console.log(error);
@@ -71,7 +84,6 @@ router.post("/sign-in", async (req, res) => {
     if (!isPasswordValid) {
       return res.status(401).json({ message: "Wrong password" });
     }
-    console.log(user._id);
     const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: "10m" });
     res.status(200).json({ message: "Signed in successfully", token });
   } catch (error) {
@@ -163,12 +175,20 @@ router.post("/job-application", async (req, res) => {
     });
     const newJobApplication = await JobApplication.create({ fullname, email, education: formattedEducation, exp: formattedExp, portfolio, github, linkedin, skills, progLang, currLoc, shiftToNew, slot });
     console.log("Job Application Posted");
-    res.status(201).json({
-      message: "Job application submitted successfully",
-      jobApplication: newJobApplication,
-    });
+    res.status(201).json({ message: "Job application submitted successfully", jobApplication: newJobApplication });
   } catch (err) {
     console.log(err);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+router.post("/company/:id/posting", checkCompanyOwnership, async (req, res) => {
+  try {
+    const { job_title, created_at, location, job_type, description, salary_range } = req.body;
+    const jobPost = await JobPost.create({job_title, created_at, location, job_type, description, salary_range, company: req.params.id, createdBy: req.user.userId });
+    res.status(201).json({ message: "Job posting created successfully", jobPost });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Server Error" });
   }
 });
