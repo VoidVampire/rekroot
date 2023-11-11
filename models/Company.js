@@ -6,9 +6,9 @@ const CompanySchema = new Schema({
     companyName: { type: String, required: true },
     companyWebsite: { type: String, required: true },
     address: {
-        street: { String, required: true },
-        city: { String, required: true },
-        pincode: { String, required: true },
+        street: { type: String, required: true },
+        city: { type: String, required: true },
+        pincode: { type: String, required: true },
     },
     logo: {type: String, required: true},
     support_email: { type: String },

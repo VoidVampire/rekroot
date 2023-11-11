@@ -44,9 +44,9 @@ const JobApplicaionSchema = new Schema({
     }
   ],
   customQuestions: {
-    question1: { String, required: true },
-    question2: { String, required: true },
-    question3: { String, required: true },
+    question1: { type: String, required: true },
+    question2: { type: String, required: true },
+    question3: { type: String, required: true },
   },
   jobPost: { type: mongoose.Schema.Types.ObjectId, ref: 'JobPost', required: true },
   company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true },
