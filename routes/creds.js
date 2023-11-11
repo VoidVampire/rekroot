@@ -182,6 +182,23 @@ router.post("/job-application", async (req, res) => {
   }
 });
 
+router.get("/company/:id/postings", async (req, res) => {
+  try {
+    const companyId = req.params.id;
+    const company = await Company.findById(companyId);
+    if (!company) {
+      console.log("No such company");
+      return res.status(404).json({ message: "No such company" });
+    }
+    const postings = await JobPost.find({ company: companyId }).select('_id');
+    const postingIds = postings.map(posting => posting._id);
+    res.status(200).json({ postings: postingIds });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
 router.post("/company/:id/posting", checkCompanyOwnership, async (req, res) => {
   try {
     const { job_title, created_at, location, job_type, description, salary_range } = req.body;
