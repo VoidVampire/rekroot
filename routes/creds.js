@@ -169,7 +169,6 @@ router.get("/company/:companyId",async(req,res)=>{
   }
 });
 
-
 router.get("/job-application", async (req, res) => {
   try {
     const jobApplications = await JobApplication.find();
@@ -229,9 +228,91 @@ router.get("/company/:id/postings", async (req, res) => {
 
 router.post("/company/:id/posting", checkCompanyOwnership, async (req, res) => {
   try {
-    const { job_title, created_at, location, job_type, description, salary_range } = req.body;
-    const jobPost = await JobPost.create({job_title, created_at, location, job_type, description, salary_range, company: req.params.id, createdBy: req.user.userId });
+    const jobPost = await JobPost.create({
+      job_title: req.body.job_title, 
+      location: req.body.location, 
+      job_type: req.body.job_type, 
+      description: req.body.description, 
+      salary_range: req.body.salary_range, 
+      company: req.params.id, 
+      createdBy: req.user.userId });
     res.status(201).json({ message: "Job posting created successfully", jobPost });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+router.get("/company/:id/posting/:postingid/application/:applicationID", async (req, res) => {
+  try {
+    const companyId = req.params.id;
+    const postingId = req.params.postingid;
+    const applicationId = req.params.applicationID;
+    const company = await Company.findById(companyId);
+    const jobPost = await JobPost.findById(postingId);
+    if ( !company || !jobPost ) {
+      return res.status(401).json({ message: "Forbidden: Invalid company or job post" });
+    }
+    if (!jobPost.company.equals(companyId)) {
+      return res.status(403).json({ message: "Forbidden: Job post does not belong to the specified company" });
+    }
+    const jobApplication = await JobApplication.findById(applicationId);
+    if (!jobApplication || !jobApplication.company.equals(companyId) || !jobApplication.jobPost.equals(postingId)) {
+      return res.status(404).json({ message: "Not Found: Job application not found or does not belong to the specified company and job post" });
+    }
+    res.status(200).json({ message: "Job application details retrieved successfully", application: jobApplication });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
+router.post("/company/:id/posting/:postingid/application", async (req, res) => {
+  try {
+    const companyId = req.params.id;
+    const postingId = req.params.postingid;
+    const applicantId = req.user.userId;
+    const company = await Company.findById(companyId);
+    const jobPost = await JobPost.findById(postingId);
+    if ( !company || !jobPost ) {
+      return res.status(401).json({ message: "Forbidden: Invalid company or job post" });
+    }
+    if ( company.createdBy.equals(applicantId) ) {
+      return res.status(402).json({ message: "Forbidden: You cannot apply to your own company." });
+    }
+    if ( !jobPost.company.equals(companyId) ) {
+      return res.status(403).json({ message: "Forbidden: Job post does not belong to the specified company" });
+    }
+    const existingApplication = await JobApplication.findOne({
+      jobPost: postingId,
+      company: companyId,
+      applicantID: applicantId
+    });
+    if (existingApplication) {
+      return res.status(400).json({ message: "Sorry you can apply for this job only once" });
+    }
+    const newJobApplication = await JobApplication.create({
+      applicantName: req.body.applicantName,
+      applicantID: applicantId,
+      email: req.body.email,
+      phone: req.body.phone,
+      education: req.body.education,
+      workExperience: req.body.workExperience,
+      resume: req.body.resume,
+      coverLetter: req.body.coverLetter,
+      linkedinProfile: req.body.linkedinProfile,
+      githubProfile: req.body.githubProfile,
+      portfolio: req.body.portfolio,
+      skills: req.body.skills,
+      currLoc: req.body.currLoc,
+      shiftToNew: req.body.shiftToNew,
+      slot: req.body.slot,
+      references: req.body.references,
+      customQuestions: req.body.customQuestions,
+      jobPost: postingId,
+      company: companyId
+    });
+    res.status(201).json({ message: "Job application created successfully", application: newJobApplication });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server Error" });
