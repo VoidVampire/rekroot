@@ -9,8 +9,7 @@ const JobApplication = require("../models/Application");
 const Company = require("../models/Company");
 const JobPost = require("../models/JobPost");
 const jwtSecret = process.env.JWT_SECRET;
-const multer = require("multer");
-const upload=require("../middleware/upload");
+const { v4: uuidv4 } = require('uuid');
 
 const authMiddleware = expressJwt({
   secret: jwtSecret,
@@ -122,26 +121,30 @@ router.post("/profile-edit", async (req, res) => {
   }
 });
 
-router.post("/company",upload.single('file'),async(req,res)=>{
+router.post("/company",async(req,res)=>{
   try{
     const {companyName,companyWebsite,address,support_email}=req.body;
-    if (req.file.size > 1024 * 1024) {
-      return res.status(400).json({ error: 'File size exceeds 1 MB. Please upload a smaller file.' });
-    }
     const existingCompany = await Company.findOne({ companyName });
     if (existingCompany) {
       return res.status(400).json({ message: "Company already exists" });
     }
 
-    const userId = req.user.userId;
+    const file = req.files.file;
+    if (!file) {
+      return res.status(400).json({ error: 'File is required.' });
+    }
 
-    const company = await Company.create({companyName,
-      companyWebsite,
-      address,
-      logo:req.file.path,
-      support_email,
-      createdBy:userId
-    });
+    const fileBuffer = Buffer.from(file.data, 'binary');
+    const base64Encoded = fileBuffer.toString('base64');
+    
+    if (fileBuffer.length > 1024 * 1024) {
+      return res.status(400).json({ error: 'File size exceeds 1 MB. Please upload a smaller file.' });
+    }
+
+    const userId = req.user.userId;
+    const companyId = uuidv4();
+
+    const company = await Company.create({companyId,companyName,companyWebsite,address,logo:base64Encoded,support_email,createdBy:userId});
 
     console.log("Company is created", company);
     res.status(201).json({ message: "Company is created Successfully" });
@@ -154,8 +157,12 @@ router.post("/company",upload.single('file'),async(req,res)=>{
 
 router.get("/company/:companyId",async(req,res)=>{
   try{
-    const companyId=req.params.companyId;
-    const company = await Company.findById(companyId).populate('createdBy', 'fullName');
+    const companyId = req.params.companyId;
+    const company = await Company.findOne({companyId: companyId })
+    .populate({
+      path: 'createdBy',
+      select: 'fullName -_id',
+    });
 
     if (!company) {
       return res.status(404).json({ message: 'Company not found' });
@@ -164,6 +171,20 @@ router.get("/company/:companyId",async(req,res)=>{
     res.status(200).json({ company });
   }
   catch(error){
+    console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+router.get("/me/companies",async(req,res)=>{
+  try {
+    const userId = req.user.userId;
+    const companies = await Company.find({ createdBy: userId });
+
+    const companyUUIDs = companies.map(company => company.companyId);
+
+    res.status(200).json({ companyUUIDs });
+  } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server Error' });
   }
