@@ -343,6 +343,18 @@ router.post("/company/:id/posting/:postingid/application", async (req, res) => {
   }
 });
 
+router.get('/company/:id/posting/:postingid/application', checkCompanyOwnership, async (req, res) => {
+  try {
+    const companyId = req.params.id;
+    const postingId = req.params.postingid;
+    const applications = await JobApplication.find({ company: companyId, jobPost: postingId }, '_id');
+    const applicationIDs = applications.map(info => info._id);
+    return res.json({ applications: applicationIDs });
+  } catch (error) {
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 router.post("/sign-out", async (req, res) => {
   res.clearCookie("token");
   res.status(200).json({ message: "Signed out successfully" });
