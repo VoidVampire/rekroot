@@ -40,6 +40,26 @@ const checkCompanyOwnership = async (req, res, next) => {
   }
 };
 
+//checkCompanyOwnership using uuid
+const checkCompanyOwnershipUuid = async (req, res, next) => {
+  try {
+    const companyId = req.params.companyId;
+    const userId = req.user.userId;
+    console.log(companyId);
+    
+    const company = await Company.findOne({companyId:companyId});
+    if (!company || !company.createdBy.equals(userId)) {
+      console.log("Access Denied");
+      return res.status(403).json({ message: "Forbidden: You are not the owner of this company" });
+    }
+    console.log("Access Granted");
+    next();
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
 router.use(authMiddleware);
 router.use(express.json());
 router.use(cookieParser());
@@ -123,31 +143,16 @@ router.post("/profile-edit", async (req, res) => {
 
 router.post("/company",async(req,res)=>{
   try{
-    const {companyName,companyWebsite,support_email}=req.body;
-    const street = req.body['address[street]'];
-    const city = req.body['address[city]'];
-    const pincode = req.body['address[pincode]'];
+    const {companyName,companyWebsite,address,support_email}=req.body;
     const existingCompany = await Company.findOne({ companyName });
     if (existingCompany) {
       return res.status(400).json({ message: "Company already exists" });
     }
 
-    const file = req.files.file;
-    if (!file) {
-      return res.status(400).json({ error: 'File is required.' });
-    }
-
-    const fileBuffer = Buffer.from(file.data, 'binary');
-    const base64Encoded = fileBuffer.toString('base64');
-    
-    if (fileBuffer.length > 1024 * 1024) {
-      return res.status(400).json({ error: 'File size exceeds 1 MB. Please upload a smaller file.' });
-    }
-
     const userId = req.user.userId;
     const companyId = uuidv4();
 
-    const company = await Company.create({companyId,companyName,companyWebsite,address:{ street, city, pincode },logo:base64Encoded,support_email,createdBy:userId});
+    const company = await Company.create({companyId,companyName,companyWebsite,address,support_email,createdBy:userId});
 
     console.log("Company is created", company);
     res.status(201).json({ message: "Company is created Successfully" });
@@ -158,6 +163,57 @@ router.post("/company",async(req,res)=>{
   }
 });
 
+//Here companyId is UUID
+router.post("/company/:companyId/logo",checkCompanyOwnershipUuid,async(req,res)=>{
+  try{
+    const companyId = req.params.companyId;
+    console.log(companyId)
+    const company = await Company.findOne({companyId: companyId })
+    const file = req.files.file;
+    const fileBuffer = Buffer.from(file.data, 'binary');
+    const base64Encoded = fileBuffer.toString('base64');
+    
+    if (fileBuffer.length > 1024 * 1024) {
+      return res.status(400).json({ error: 'File size exceeds 1 MB. Please upload a smaller file.' });
+    }
+    if (file) {
+      company.logo=base64Encoded;
+    }
+    await company.save();
+
+    console.log("Company Logo is changed", company.logo);
+    res.status(201).json({ message: "Company Logo is changed" });
+  }
+  catch(error){
+    console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+//Here companyId is UUID
+router.get("/company/:companyId/logo",async(req,res)=>{
+  try{
+    const companyId = req.params.companyId;
+    const company = await Company.findOne({ companyId });
+
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+    if (!company.logo) {
+      return res.status(404).json({ message: 'Logo not found for this company' });
+    }
+    const buffer = Buffer.from(company.logo, 'base64');
+    res.contentType('image/png');
+    res.end(buffer, 'binary');
+
+  }
+  catch(error){
+    console.error(error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
+//Here companyId is UUID
 router.get("/company/:companyId",async(req,res)=>{
   try{
     const companyId = req.params.companyId;
