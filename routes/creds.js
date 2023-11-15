@@ -323,6 +323,37 @@ router.post("/company/:id/posting", checkCompanyOwnership, async (req, res) => {
   }
 });
 
+router.get("/company/:id/posting/:postingid",async(req,res)=>{
+  try{
+    const companyId=req.params.id;
+    const postingId=req.params.postingid;
+
+    const companyExists = await Company.exists({ _id: companyId })
+  
+    if (!companyExists) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+
+    const jobPosting=await JobPost.findOne({ _id: postingId, company: companyId })
+    .populate({
+      path: 'createdBy',
+      select: 'fullName -_id',
+    }).populate({
+      path: 'company',
+      select: 'companyName -_id',
+    });
+    if (!jobPosting) {
+      return res.status(404).json({ message: 'Job posting not found' });
+    }
+
+    res.status(200).json({ jobPosting });
+  }
+  catch(error){
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
+  }
+});
+
 router.get("/company/:id/posting/:postingid/application/:applicationID", async (req, res) => {
   try {
     const companyId = req.params.id;
