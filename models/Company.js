@@ -6,10 +6,10 @@ const CompanySchema = new Schema({
     companyId:{ type:String, required:true },
     companyName: { type: String, required: true },
     companyWebsite: { type: String, required: true },
-    address: {
-        street: { type: String },
-        city: { type: String },
-        pincode: { type: String },
+    address:{
+        street: { type: String,required:true },
+        city: { type: String,required:true },
+        pincode: { type: String,required:true },
     },
     logo: {type: String, required: true},
     support_email: { type: String },

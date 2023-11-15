@@ -123,7 +123,10 @@ router.post("/profile-edit", async (req, res) => {
 
 router.post("/company",async(req,res)=>{
   try{
-    const {companyName,companyWebsite,address,support_email}=req.body;
+    const {companyName,companyWebsite,support_email}=req.body;
+    const street = req.body['address[street]'];
+    const city = req.body['address[city]'];
+    const pincode = req.body['address[pincode]'];
     const existingCompany = await Company.findOne({ companyName });
     if (existingCompany) {
       return res.status(400).json({ message: "Company already exists" });
@@ -144,7 +147,7 @@ router.post("/company",async(req,res)=>{
     const userId = req.user.userId;
     const companyId = uuidv4();
 
-    const company = await Company.create({companyId,companyName,companyWebsite,address,logo:base64Encoded,support_email,createdBy:userId});
+    const company = await Company.create({companyId,companyName,companyWebsite,address:{ street, city, pincode },logo:base64Encoded,support_email,createdBy:userId});
 
     console.log("Company is created", company);
     res.status(201).json({ message: "Company is created Successfully" });
