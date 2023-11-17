@@ -259,6 +259,20 @@ router.get("/company/:companyID", AuthMiddleware, async (req, res) => {
   }
 });
 
+router.get('/posting', async (req, res) => {
+  try {
+    const companies = await Company.find({});
+    let postingIDs = [];
+    for (const company of companies) {
+      const postings = await JobPost.find({ company: company._id }, '_id');
+      const ids = postings.map(post => post._id);
+      postingIDs = postingIDs.concat(ids);
+    }
+    res.json({ postingIDs });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error });
+  }
+});
 
 // router.get("/job-application", async (req, res) => {
 //   try {
