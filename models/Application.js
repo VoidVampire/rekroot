@@ -2,8 +2,9 @@ const mongoose = require("mongoose");
 
 const Schema = mongoose.Schema;
 const JobApplicaionSchema = new Schema({
+  _id: { type: String, required: true },
   applicantName: { type: String, required: true, default: "" },
-  applicantID: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  applicantID: { type: String, required: true },
   email: { type: String, required: true },
   phone: {type: Number, required: true },
   education: [
@@ -49,8 +50,8 @@ const JobApplicaionSchema = new Schema({
     question2: { type: String, required: true },
     question3: { type: String, required: true },
   },
-  jobPost: { type: mongoose.Schema.Types.ObjectId, ref: 'JobPost', required: true },
-  company: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true }
+  jobPost: { type: String, required: true },
+  company: { type: String, required: true }
 });
 
 module.exports = mongoose.model("JobApplication", JobApplicaionSchema);

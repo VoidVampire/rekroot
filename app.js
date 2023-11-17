@@ -12,7 +12,7 @@ connectDB();
 app.use(express.json());
 app.use(cors());
 app.use(fileUpload());
-app.use('/', require('./routes/creds'));
+app.use('/', require('./routes/routesInfo'));
 app.listen(port, () => {
     console.log(`Listening on port ${port}...`);
 });
