@@ -92,6 +92,23 @@ router.post('/sign-out', AuthMiddleware, async (req, res) => {
   }
 });
 
+router.post('/delete-my-account', AuthMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.user.id;
+    await supabase.functions.invoke('delete-user');
+    await User.findByIdAndDelete(userId);
+    await Company.deleteMany({ createdBy: userId });
+    const userJobPosts = await JobPost.find({ createdBy: userId });
+    const jobPostIDs = userJobPosts.map(jobPost => jobPost._id);
+    await JobApplication.deleteMany({ jobPost: { $in: jobPostIDs } });
+    await JobPost.deleteMany({ createdBy: userId });
+    await supabase.auth.signOut();
+    res.status(200).json({ message: 'Account deleted successfully!' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting the account!', error: error.message });
+  }
+});
+
 router.get('/me', AuthMiddleware, async (req, res) => {
   try {
     const user = await User.findById(req.user.user.id).select('fullName email');
