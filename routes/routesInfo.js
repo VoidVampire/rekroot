@@ -189,6 +189,11 @@ router.post("/profile-edit", AuthMiddleware, async (req, res) => {
 //   }
 // });
 
+router.get("/company", AuthMiddleware, async (req, res) => {
+  const companies = await Company.find();
+  res.status(200).json(companies);
+})
+
 router.post("/company", AuthMiddleware, async (req, res) => {
   try {
     const { companyName, companyWebsite, address, support_email } = req.body;
