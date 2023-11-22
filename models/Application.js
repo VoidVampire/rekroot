@@ -50,6 +50,7 @@ const JobApplicaionSchema = new Schema({
     question2: { type: String, required: true },
     question3: { type: String, required: true },
   },
+  status: { type: String, required: true, enum: ["APPROVED", "PENDING", "REJECTED"], default: "PENDING" },
   jobPost: { type: String, required: true },
   company: { type: String, required: true }
 });

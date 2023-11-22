@@ -6,7 +6,13 @@ const Company = require("../models/Company");
 const JobPost = require("../models/JobPost");
 const { createClient } = require('@supabase/supabase-js');
 const { v4: uuidv4 } = require('uuid');
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+// const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false
+  }
+})
 
 router.use(express.json());
 
@@ -60,7 +66,7 @@ router.post('/sign-up', async (req, res) => {
 
     res.status(201).json({ message: 'Sign-up successful' });
   } catch (error) {
-    res.status(500).json({ message: 'Sign-up failed', error });
+    res.status(500).json({ message: 'Sign-up failed', error: error.message });
   }
 });
 
@@ -79,6 +85,16 @@ router.post('/sign-in', async (req, res) => {
     res.status(200).json({ message: 'Sign-in successful', token: data.session.access_token });
   } catch (error) {
     res.status(500).json({ message: 'Sign-in failed', error });
+  }
+});
+
+router.post('/sign-up-github', async (req, res) => {
+  try {
+    const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'github' });
+    console.log(data);
+    res.status(200).json({ message: 'Sign-in successful', token: data.session.access_token });
+  } catch (error) {
+    res.status(500).json({ message: 'Sign-in failed', error: error.message });
   }
 });
 
@@ -189,10 +205,6 @@ router.post("/profile-edit", AuthMiddleware, async (req, res) => {
 //   }
 // });
 
-router.get("/company", AuthMiddleware, async (req, res) => {
-  const companies = await Company.find();
-  res.status(200).json(companies);
-})
 
 router.post("/company", AuthMiddleware, async (req, res) => {
   try {
@@ -489,6 +501,31 @@ router.get('/company/:companyID/posting/:postingID/application', AuthMiddleware,
     return res.json({ applications: applicationIDs });
   } catch (error) {
     return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/company/:companyID/posting/:postingID/application/:applicationID/status/:status", AuthMiddleware, checkCompanyOwnership, async (req, res) => {
+  try {
+    const companyID = req.params.companyID;
+    const postingID = req.params.postingID;
+    const applicationID = req.params.applicationID;
+    const newStatus = req.params.status;
+    const company = await Company.findById(companyID);
+    const jobPost = await JobPost.findById(postingID);
+    const jobApplication = await JobApplication.findById(applicationID);
+
+    if (!company || !jobPost || !jobApplication) {
+      return res.status(401).json({ message: "Forbidden: Invalid company, job post, or application" });
+    }
+    if (!(jobPost.company === companyID) || !(jobApplication.jobPost === postingID)) {
+      return res.status(403).json({ message: "Forbidden: Job post or application does not belong to the specified company" });
+    }
+    jobApplication.status = newStatus;
+    await jobApplication.save();
+    res.status(201).json({ message: "Application updated."});
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error" });
   }
 });
 
