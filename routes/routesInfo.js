@@ -194,18 +194,6 @@ router.post("/profile-edit", AuthMiddleware, async (req, res) => {
   }
 });
 
-// router.post("/change-password", AuthMiddleware, async (req, res) => {
-//   try {
-//     const { password } = req.body;
-//     await supabase.auth.updateUser({ password: password });
-//     res.status(200).json({ message: "Password Updated successfully" });
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).json({ message: "Server Error" });
-//   }
-// });
-
-
 router.post("/company", AuthMiddleware, async (req, res) => {
   try {
     const { companyName, companyWebsite, address, support_email } = req.body;
@@ -293,6 +281,44 @@ router.get("/company/:companyID", AuthMiddleware, async (req, res) => {
   }
 });
 
+router.patch('/company/:companyID', AuthMiddleware, checkCompanyOwnership, async (req, res) => {
+  try {
+    const companyId = req.params.companyID;
+    const company = await Company.findById(companyId);
+    if (!company) {
+      return res.status(404).json({ message: 'Company not found' });
+    }
+    const { companyName, companyWebsite, address, logo, support_email } = req.body;
+    if (companyName) {
+      company.companyName = companyName;
+    }
+    if (companyWebsite) {
+      company.companyWebsite = companyWebsite;
+    }
+    if (address) {
+      if (address.street) {
+        company.address.street = address.street;
+      }
+      if (address.city) {
+        company.address.city = address.city;
+      }
+      if (address.pincode) {
+        company.address.pincode = address.pincode;
+      }
+    }
+    if (logo) {
+      company.logo = logo;
+    }
+    if (support_email) {
+      company.support_email = support_email;
+    }
+    const updatedCompany = await company.save();
+    res.status(200).json(updatedCompany);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.get('/posting', async (req, res) => {
   try {
     const companies = await Company.find({});
@@ -307,46 +333,6 @@ router.get('/posting', async (req, res) => {
     res.status(500).json({ message: 'Server Error', error });
   }
 });
-
-// router.get("/job-application", async (req, res) => {
-//   try {
-//     const jobApplications = await JobApplication.find();
-//     res.status(200).json(jobApplications);
-//   } catch (error) {
-//     console.error("Error fetching job applications:", error);
-//     res.status(500).json({ error: "Server Error" });
-//   }
-// });
-
-// router.post("/job-application", async (req, res) => {
-//   try {
-//     const { fullname, email, education, exp, portfolio, github, linkedin, skills, progLang, currLoc, shiftToNew, slot } = req.body;
-//     const formattedEducation = education.map((edu) => ({
-//       eduLevel: edu.eduLevel,
-//       schoolName: edu.schoolName,
-//       passYear: edu.passYear,
-//       cgpa: edu.cgpa
-//     }));
-//     const formattedExp = exp.map((expItem) => {
-//       const fromDate = new Date(expItem.from);
-//       const toDate = new Date(expItem.to);
-//       const diffTime = Math.abs(toDate - fromDate);
-//       const diffYears = diffTime / (1000 * 60 * 60 * 24 * 365);
-//       return {
-//         from: fromDate,
-//         to: toDate,
-//         jobTitle: expItem.jobTitle,
-//         yearsOfExp: Math.round(diffYears),
-//       };
-//     });
-//     const newJobApplication = await JobApplication.create({ fullname, email, education: formattedEducation, exp: formattedExp, portfolio, github, linkedin, skills, progLang, currLoc, shiftToNew, slot });
-//     console.log("Job Application Posted");
-//     res.status(201).json({ message: "Job application submitted successfully", jobApplication: newJobApplication });
-//   } catch (err) {
-//     console.log(err);
-//     res.status(500).json({ message: "Server Error" });
-//   }
-// });
 
 router.get("/company/:companyID/postings", AuthMiddleware, async (req, res) => {
   try {
@@ -408,6 +394,42 @@ router.get("/company/:companyID/posting/:postingID", AuthMiddleware, async (req,
   catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server Error" });
+  }
+});
+
+router.patch('/company/:companyID/posting/:postingID', AuthMiddleware, checkCompanyOwnership, async (req, res) => {
+  const companyId = req.params.companyID;
+  const postingId = req.params.postingID;
+  try {
+    const jobPost = await JobPost.findOne({ _id: postingId, company: companyId });
+    if (!jobPost) {
+      return res.status(404).json({ message: 'Job posting not found' });
+    }
+    const { job_title, location, job_type, description, salary_range } = req.body;
+    if (job_title) {
+      jobPost.job_title = job_title;
+    }
+    if (location) {
+      if (location.state) {
+        jobPost.location.state = location.state;
+      }
+      if (location.country) {
+        jobPost.location.country = location.country;
+      }
+    }
+    if (job_type) {
+      jobPost.job_type = job_type;
+    }
+    if (description) {
+      jobPost.description = description;
+    }
+    if (salary_range) {
+      jobPost.salary_range = salary_range;
+    }
+    const updatedJobPost = await jobPost.save();
+    res.json(updatedJobPost);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 
