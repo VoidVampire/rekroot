@@ -191,6 +191,25 @@ router.get("/company", AuthMiddleware, async (req, res) => {
   res.status(200).json(companies);
 })
 
+router.get('/all-jobposts', async (req, res) => {
+  try {
+    const jobPosts = await JobPost.find({}, 'job_title created_at job_type company createdBy')
+      .populate({
+        path: 'createdBy',
+        select: 'fullName',
+        model: User,
+      })
+      .populate({
+        path: 'company',
+        select: 'companyName',
+        model: Company,
+      });
+    res.status(200).json({ jobPosts });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 router.post("/company", AuthMiddleware, async (req, res) => {
   try {
     const { companyName, companyWebsite, address, support_email } = req.body;
