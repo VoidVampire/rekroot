@@ -18,10 +18,11 @@ router.use(express.json());
 
 const AuthMiddleware = async (req, res, next) => {
   try {
-    if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer')) {
+    const token = req.headers.authorization && req.headers.authorization.startsWith('Bearer') ? req.headers.authorization.split(' ')[1] : null;
+    if (!token) {
       return res.status(401).json({ message: "No Token provided" });
     }
-    const { data, error } = await supabase.auth.getUser();
+    const { data, error } = await supabase.auth.getUser(token);
     if (error || !data) {
       throw error || new Error('Unauthorized');
     }
