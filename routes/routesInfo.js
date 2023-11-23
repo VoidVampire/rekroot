@@ -182,7 +182,7 @@ router.post("/profile-edit", AuthMiddleware, async (req, res) => {
 
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
@@ -206,7 +206,7 @@ router.post("/company", AuthMiddleware, async (req, res) => {
   }
   catch (error) {
     console.log(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
@@ -231,7 +231,7 @@ router.post("/company/:companyID/logo", AuthMiddleware, checkCompanyOwnership, a
   }
   catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
@@ -253,7 +253,7 @@ router.get("/company/:companyID/logo", AuthMiddleware, async (req, res) => {
   }
   catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
@@ -274,7 +274,7 @@ router.get("/company/:companyID", AuthMiddleware, async (req, res) => {
   }
   catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
@@ -359,7 +359,7 @@ router.get("/company/:companyID/postings", AuthMiddleware, async (req, res) => {
     res.status(200).json({ postings: postingIDs });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
@@ -379,7 +379,7 @@ router.post("/company/:companyID/posting", AuthMiddleware, checkCompanyOwnership
     res.status(201).json({ message: "Job posting created successfully", jobPost });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
@@ -407,7 +407,7 @@ router.get("/company/:companyID/posting/:postingID", AuthMiddleware, async (req,
   }
   catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
@@ -486,7 +486,7 @@ router.get("/company/:companyID/posting/:postingID/application/:applicationID", 
     res.status(200).json({ application: jobApplication });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
@@ -539,7 +539,7 @@ router.post("/company/:companyID/posting/:postingID/application", AuthMiddleware
     res.status(201).json({ message: "Job application created successfully", application: newJobApplication });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
@@ -551,7 +551,7 @@ router.get('/company/:companyID/posting/:postingID/application', AuthMiddleware,
     const applicationIDs = applications.map(info => info._id);
     return res.json({ applications: applicationIDs });
   } catch (error) {
-    return res.status(500).json({ error: "Server error" });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
@@ -576,7 +576,7 @@ router.post("/company/:companyID/posting/:postingID/application/:applicationID/s
     res.status(201).json({ message: "Application updated."});
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
