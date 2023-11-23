@@ -45,12 +45,12 @@ const JobApplicaionSchema = new Schema({
       contact: {type: Number, required: true },
     }
   ],
-  customQuestions: {
-    question1: { type: String, required: true },
-    question2: { type: String, required: true },
-    question3: { type: String, required: true },
+  customAnswers: {
+    answers1: { type: String, required: true },
+    answers2: { type: String, required: true },
+    answers3: { type: String, required: true },
   },
-  status: { type: String, required: true, enum: ["APPROVED", "PENDING", "REJECTED"], default: "PENDING" },
+  status: { type: String, required: true, enum: ["APPROVED", "PENDING", "REJECTED", "CLOSED"], default: "PENDING" },
   jobPost: { type: String, required: true },
   company: { type: String, required: true }
 });

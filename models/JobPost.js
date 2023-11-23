@@ -13,6 +13,11 @@ const JobPostSchema = new Schema({
     job_type: { type: String, required: true, enum: ["REMOTE", "ONSITE", "HYBRID"], default: "REMOTE" },
     description: { type: String, required: true },
     salary_range: { type: String, required: true },
+    customQuestions: {
+        question1: { type: String, required: true },
+        question2: { type: String, required: true },
+        question3: { type: String, required: true },
+    },
     company: { type: String, required: true },
     createdBy: { type: String, required: true },
 });
