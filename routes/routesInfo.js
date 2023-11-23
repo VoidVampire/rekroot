@@ -151,7 +151,7 @@ router.get("/me/companies", AuthMiddleware, async (req, res) => {
 router.get("/me/applications", AuthMiddleware, async (req, res) => {
   try {
     const userID = req.user.user.id;
-    const applicationIds = await JobApplication.distinct('_id', { applicantID: userID });
+    const applicationIds = await JobApplication.find({ applicantID: userID });
     res.status(200).json({ applications: applicationIds });
   }
   catch (error) {
