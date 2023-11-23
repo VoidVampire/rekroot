@@ -6,12 +6,12 @@ const JobApplicaionSchema = new Schema({
   applicantName: { type: String, required: true, default: "" },
   applicantID: { type: String, required: true },
   email: { type: String, required: true },
-  phone: {type: Number, required: true },
+  phone: {type: String, required: true },
   education: [
     {
       degree: { type: String, required: true }, 
       institution: { type: String, required: true },
-      graduationDate: {type: Number, required: true },
+      graduationDate: {type: Date, required: true },
       cgpa: {type: Number, required: true }
     }
   ],
@@ -42,7 +42,7 @@ const JobApplicaionSchema = new Schema({
     {
       name: { type: String, required: true }, 
       relationship: { type: String, required: true },
-      contact: {type: Number, required: true },
+      contact: {type: String, required: true },
     }
   ],
   customAnswers: {
