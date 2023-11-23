@@ -6,7 +6,7 @@ const UserSchema = new Schema({
   _id: { type: String, required: true },
   fullName: { type: String, default: "" },
   email: { type: String, required: true, unique: true },
-  phoneNo: { type: Number, default: 0 },
+  phoneNo: { type: String, default: ""},
   location: { type: String, default: "" },
   linkedin: { type: String, default: "" },
   companies: [{ type: String }],
