@@ -318,12 +318,13 @@ router.patch('/company/:companyID', AuthMiddleware, checkCompanyOwnership, async
 router.delete('/company/:companyID', AuthMiddleware, checkCompanyOwnership, async (req, res) => {
   try {
     const companyID = req.params.companyID;
-    await JobPost.deleteMany({ company: companyID });
-    await JobApplication.updateMany({ company: companyID }, { $set: { status: "CLOSED" } });
-    const deletedCompany = await Company.findByIdAndDelete(companyID);
-    if (!deletedCompany) {
+    const companyExists = await Company.exists({ _id: companyID });
+    if (!companyExists) {
       return res.status(404).json({ message: 'Company not found' });
     }
+    await JobApplication.deleteMany({ company: companyID });
+    await JobPost.deleteMany({ company: companyID });
+    await Company.findByIdAndDelete(companyID);
     return res.status(200).json({ message: 'Company deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
@@ -448,11 +449,12 @@ router.patch('/company/:companyID/posting/:postingID', AuthMiddleware, checkComp
 router.delete('/company/:companyID/posting/:postingID', AuthMiddleware, checkCompanyOwnership, async (req, res) => {
   try {
     const { companyID, postingID } = req.params;
-    const deletedPosting = await JobPost.findOneAndDelete({ _id: postingID, company: companyID });
-    if (!deletedPosting) {
-      return res.status(404).json({ message: 'Posting not found for this company' });
+    const postingExists = await Company.exists({ _id: postingID });
+    if (!postingExists) {
+      return res.status(404).json({ message: 'Job Posting not found' });
     }
-    await JobApplication.updateMany({ jobPost: postingID }, { $set: { status: 'CLOSED' } });
+    await JobApplication.deleteMany({ jobPost: postingID });
+    await JobPost.findOneAndDelete({ _id: postingID, company: companyID });
     return res.status(200).json({ message: 'Posting deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
