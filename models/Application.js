@@ -6,30 +6,30 @@ const JobApplicaionSchema = new Schema({
   applicantName: { type: String, required: true, default: "" },
   applicantID: { type: String, required: true },
   email: { type: String, required: true },
-  phone: {type: String, required: true },
+  phone: {type: String, required: false },
   education: [
     {
       degree: { type: String, required: true }, 
       institution: { type: String, required: true },
       graduationDate: {type: Date, required: true },
-      cgpa: {type: Number, required: true }
+      cgpa: {type: Number, required: false }
     }
   ],
   workExperience: [
     {
-      company: { type: String, required: true },
-      position: { type: String, required: true },
-      startDate: { type: Date, required: true },
-      endDate: { type: Date, required: true},
-      yearsOfExp: { type: Number, required: true },
-      responsibilities: { type: String, required: true }
+      company: { type: String, required: false },
+      position: { type: String, required: false },
+      startDate: { type: Date, required: false },
+      endDate: { type: Date, required: false },
+      yearsOfExp: { type: Number, required: false },
+      responsibilities: { type: String, required: false }  
     }
   ],
-  resume: {type: String, required: true },
-  coverLetter: {type: String, required: true },
-  linkedinProfile: {type: String, required: true },
-  githubProfile: {type: String, required: true },
-  portfolio: {type: String, required: true },
+  resume: {type: String, required: false },
+  coverLetter: {type: String, required: false },
+  linkedinProfile: {type: String, required: false },
+  githubProfile: {type: String, required: false },
+  portfolio: {type: String, required: false },
   skills: [{ type:String, required: true }],
   currLoc: {
     city: { type: String, required: true },
@@ -46,9 +46,9 @@ const JobApplicaionSchema = new Schema({
     }
   ],
   customAnswers: {
-    answers1: { type: String, required: true },
-    answers2: { type: String, required: true },
-    answers3: { type: String, required: true },
+    answers1: { type: String, required: false },
+    answers2: { type: String, required: false },
+    answers3: { type: String, required: false },
   },
   status: { type: String, required: true, enum: ["APPROVED", "PENDING", "REJECTED"], default: "PENDING" },
   jobPost: { type: String, required: true },
