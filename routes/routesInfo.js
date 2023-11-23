@@ -16,11 +16,27 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANO
 
 router.use(express.json());
 
+const AuthMiddleware = async (req, res, next) => {
+  try {
+    if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer')) {
+      return res.status(401).json({ message: "No Token provided" });
+    }
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data) {
+      throw error || new Error('Unauthorized');
+    }
+    req.user = data;
+    next();
+  } catch (error) {
+    res.status(401).json({ message: 'Unauthorized', error: error.message });
+  }
+};
+
 const checkCompanyOwnership = async (req, res, next) => {
   try {
     const companyID = req.params.companyID;
     const company = await Company.findById(companyID);
-    if (!company || !(company.createdBy === req.user.user.id)) {
+    if (!company || company.createdBy !== req.user.user.id) {
       console.log("Access Denied");
       return res.status(403).json({ message: "Forbidden: You are not the owner of this company" });
     }
@@ -28,32 +44,14 @@ const checkCompanyOwnership = async (req, res, next) => {
     next();
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
-  }
-};
-
-const AuthMiddleware = async (req, res, next) => {
-  try {
-    if (!req.headers.authorization) {
-      res.status(401).json({ message: "No Token provided" });
-    }
-    else if (req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer') {
-      const { data, error } = await supabase.auth.getUser();
-      if (error || !data) {
-        throw error || new Error('Unauthorized');
-      }
-      req.user = data;
-      next();
-    }
-  } catch (error) {
-    res.status(401).json({ message: 'Unauthorized', error });
+    res.status(500).json({ message: "Server Error", error: error.message});
   }
 };
 
 router.post('/sign-up', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const existingUser = await User.findOne({ email }).select('-_id email');
+    const existingUser = await User.findOne({ email }, 'email');
     if (existingUser) {
       return res.status(400).json({ message: "Email already exists" });
     }
@@ -84,7 +82,7 @@ router.post('/sign-in', async (req, res) => {
     else if (error) { throw error; }
     res.status(200).json({ message: 'Sign-in successful', token: data.session.access_token });
   } catch (error) {
-    res.status(500).json({ message: 'Sign-in failed', error });
+    res.status(500).json({ message: 'Sign-in failed', error: error.message });
   }
 });
 
@@ -104,7 +102,7 @@ router.post('/sign-out', AuthMiddleware, async (req, res) => {
     if (error) { throw error; }
     res.status(200).json({ message: 'Sign-out successful' });
   } catch (error) {
-    res.status(400).json({ message: 'Sign-out failed', error: error });
+    res.status(400).json({ message: 'Sign-out failed', error: error.message });
   }
 });
 
@@ -127,44 +125,37 @@ router.post('/delete-my-account', AuthMiddleware, async (req, res) => {
 
 router.get('/me', AuthMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.user.id).select('fullName email');
+    const user = await User.findById(req.user.user.id, 'fullName email');
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
     res.status(200).json(user);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
 router.get("/me/companies", AuthMiddleware, async (req, res) => {
   try {
     const userID = req.user.user.id;
-    const companies = await Company.find({ createdBy: userID });
-    const companyUUIDs = companies.map(company => company._id);
+    const companyUUIDs = await Company.distinct('_id', { createdBy: userID });
     res.status(200).json({ companyUUIDs });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: 'Server Error', error: error.message});
   }
 });
 
 router.get("/me/applications", AuthMiddleware, async (req, res) => {
   try {
     const userID = req.user.user.id;
-
-    const jobPosting = await JobPost.find({ createdBy: userID }).select('_id');
-    const jobpostingIDs = jobPosting.map(posting => posting._id);
-
-    const applications = await JobApplication.find({ jobPost: { $in: jobpostingIDs } }).select('_id');
-    const applicationIds = applications.map(application => application._id);
-
+    const applicationIds = await JobApplication.distinct('_id', { applicantID: userID });
     res.status(200).json({ applications: applicationIds });
   }
   catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 });
 
@@ -350,7 +341,7 @@ router.get('/posting', AuthMiddleware, async (req, res) => {
     }
     res.json({ postingIDs });
   } catch (error) {
-    res.status(500).json({ message: 'Server Error', error });
+    res.status(500).json({ message: 'Server Error', error: error.message });
   }
 });
 
@@ -379,6 +370,7 @@ router.post("/company/:companyID/posting", AuthMiddleware, checkCompanyOwnership
       job_type: req.body.job_type,
       description: req.body.description,
       salary_range: req.body.salary_range,
+      customQuestions: req.body.customQuestions,
       company: req.params.companyID,
       createdBy: req.user.user.id
     });
@@ -537,7 +529,7 @@ router.post("/company/:companyID/posting/:postingID/application", AuthMiddleware
       shiftToNew: req.body.shiftToNew,
       slot: req.body.slot,
       references: req.body.references,
-      customQuestions: req.body.customQuestions,
+      customAnswers: req.body.customAnswers,
       jobPost: postingID,
       company: companyID
     });
