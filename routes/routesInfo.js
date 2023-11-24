@@ -145,7 +145,17 @@ router.get("/me/companies", AuthMiddleware, async (req, res) => {
 router.get("/me/applications", AuthMiddleware, async (req, res) => {
   try {
     const userID = req.userId;
-    const applicationIds = await JobApplication.find({ applicantID: userID });
+    const applicationIds = await JobApplication.find({ applicantID: userID })
+    .populate({
+      path: 'jobPost',
+      select: 'job_title',
+      model: JobPost,
+    })
+    .populate({
+      path: 'company',
+      select: 'companyName',
+      model: Company,
+    });
     res.status(200).json({ applications: applicationIds });
   }
   catch (error) {
