@@ -6,13 +6,7 @@ const Company = require("../models/Company");
 const JobPost = require("../models/JobPost");
 const { createClient } = require('@supabase/supabase-js');
 const { v4: uuidv4 } = require('uuid');
-// const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-})
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
 router.use(express.json());
 
@@ -26,7 +20,7 @@ const AuthMiddleware = async (req, res, next) => {
     if (error || !data) {
       throw error || new Error('Unauthorized');
     }
-    req.user = data;
+    req.userId = data.user.id;
     next();
   } catch (error) {
     res.status(401).json({ message: 'Unauthorized', error: error.message });
@@ -37,7 +31,7 @@ const checkCompanyOwnership = async (req, res, next) => {
   try {
     const companyID = req.params.companyID;
     const company = await Company.findById(companyID);
-    if (!company || company.createdBy !== req.user.user.id) {
+    if (!company || company.createdBy !== req.userId) {
       console.log("Access Denied");
       return res.status(403).json({ message: "Forbidden: You are not the owner of this company" });
     }
@@ -109,7 +103,7 @@ router.post('/sign-out', AuthMiddleware, async (req, res) => {
 
 router.post('/delete-my-account', AuthMiddleware, async (req, res) => {
   try {
-    const userId = req.user.user.id;
+    const userId = req.userId;
     await supabase.functions.invoke('delete-user');
     await User.findByIdAndDelete(userId);
     await Company.deleteMany({ createdBy: userId });
@@ -126,7 +120,7 @@ router.post('/delete-my-account', AuthMiddleware, async (req, res) => {
 
 router.get('/me', AuthMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.user.user.id, 'fullName email');
+    const user = await User.findById(req.userId, 'fullName email');
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -139,7 +133,7 @@ router.get('/me', AuthMiddleware, async (req, res) => {
 
 router.get("/me/companies", AuthMiddleware, async (req, res) => {
   try {
-    const userID = req.user.user.id;
+    const userID = req.userId;
     const companyUUIDs = await Company.distinct('_id', { createdBy: userID });
     res.status(200).json({ companyUUIDs });
   } catch (error) {
@@ -150,7 +144,7 @@ router.get("/me/companies", AuthMiddleware, async (req, res) => {
 
 router.get("/me/applications", AuthMiddleware, async (req, res) => {
   try {
-    const userID = req.user.user.id;
+    const userID = req.userId;
     const applicationIds = await JobApplication.find({ applicantID: userID });
     res.status(200).json({ applications: applicationIds });
   }
@@ -217,7 +211,7 @@ router.post("/company", AuthMiddleware, async (req, res) => {
     if (existingCompany) {
       return res.status(400).json({ message: "Company already exists" });
     }
-    const userID = req.user.user.id;
+    const userID = req.userId;
     const companyID = uuidv4();
     const company = await Company.create({ _id: companyID, companyName, companyWebsite, address, support_email, createdBy: userID });
     console.log("Company is created", company);
@@ -393,7 +387,7 @@ router.post("/company/:companyID/posting", AuthMiddleware, checkCompanyOwnership
       salary_range: req.body.salary_range,
       customQuestions: req.body.customQuestions,
       company: req.params.companyID,
-      createdBy: req.user.user.id
+      createdBy: req.userId
     });
     res.status(201).json({ message: "Job posting created successfully", jobPost });
   } catch (error) {
@@ -486,7 +480,7 @@ router.get("/company/:companyID/posting/:postingID/application/:applicationID", 
     const companyID = req.params.companyID;
     const postingID = req.params.postingID;
     const applicationID = req.params.applicationID;
-    const userID = req.user.user.id;
+    const userID = req.userId;
     const company = await Company.findById(companyID);
     const jobPost = await JobPost.findById(postingID);
     if (!company || !jobPost) {
@@ -513,7 +507,7 @@ router.post("/company/:companyID/posting/:postingID/application", AuthMiddleware
   try {
     const companyID = req.params.companyID;
     const postingID = req.params.postingID;
-    const applicantID = req.user.user.id;
+    const applicantID = req.userId;
     const company = await Company.findById(companyID);
     const jobPost = await JobPost.findById(postingID);
     if (!company || !jobPost) {
