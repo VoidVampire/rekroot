@@ -473,7 +473,7 @@ router.patch('/company/:companyID/posting/:postingID', AuthMiddleware, checkComp
 router.delete('/company/:companyID/posting/:postingID', AuthMiddleware, checkCompanyOwnership, async (req, res) => {
   try {
     const { companyID, postingID } = req.params;
-    const postingExists = await Company.exists({ _id: postingID });
+    const postingExists = await JobPost.exists({ _id: postingID });
     if (!postingExists) {
       return res.status(404).json({ message: 'Job Posting not found' });
     }
