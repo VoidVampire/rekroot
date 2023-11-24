@@ -120,7 +120,7 @@ router.post('/delete-my-account', AuthMiddleware, async (req, res) => {
 
 router.get('/me', AuthMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.userId, 'fullName email');
+    const user = await User.findById(req.userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
